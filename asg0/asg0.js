@@ -91,6 +91,14 @@ function handleDrawOperationEvent() {
     v4.div(scalar);
     drawVector(v3, 'green');
     drawVector(v4, 'green');
+  } else if (operation === 'mag') {
+    console.log("Magnitude v1: " + v3.magnitude());
+    console.log("Magnitude v2: " + v4.magnitude());
+  } else if (operation === 'nor') {
+    v3.normalize();
+    v4.normalize();
+    drawVector(v3, 'green');
+    drawVector(v4, 'green');
   }
 
 }
