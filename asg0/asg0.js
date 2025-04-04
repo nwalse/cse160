@@ -99,6 +99,20 @@ function handleDrawOperationEvent() {
     v4.normalize();
     drawVector(v3, 'green');
     drawVector(v4, 'green');
+  } else if (operation === 'ang') {
+    angleBetween(v3, v4)
+  } else if (operation === 'are') {
+    areaTriangle(v3, v4)
   }
 
+}
+
+function angleBetween(v1, v2) {
+  let a = 180/(Math.PI) * Math.acos(Vector3.dot(v1, v2)/(v1.magnitude() * v2.magnitude()));
+  console.log("Angle: " + a);
+}
+
+function areaTriangle(v1, v2) {
+  let c = Vector3.cross(v1, v2).magnitude();
+  console.log("Area: " + c/2);
 }
