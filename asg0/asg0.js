@@ -9,7 +9,7 @@ function main() {
   ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  var v1 = new Vector3([2.25, 2.25]);
+  var v1 = new Vector3([2.25, 2.25, 0.0]);
   drawVector(v1, 'red');
 }
 
@@ -39,8 +39,8 @@ function handleDrawEvent() {
   let v2x = document.getElementById('v2x').value;
   let v2y = document.getElementById('v2y').value;
 
-  let v1 = new Vector3([v1x, v1y]);
-  let v2 = new Vector3([v2x, v2y]);
+  let v1 = new Vector3([v1x, v1y, 0.0]);
+  let v2 = new Vector3([v2x, v2y, 0.0]);
 
   drawVector(v1, 'red');
   drawVector(v2, 'blue');
@@ -60,8 +60,8 @@ function handleDrawOperationEvent() {
   let v2x = document.getElementById('v2x').value;
   let v2y = document.getElementById('v2y').value;
 
-  let v1 = new Vector3([v1x, v1y]);
-  let v2 = new Vector3([v2x, v2y]);
+  let v1 = new Vector3([v1x, v1y, 0.0]);
+  let v2 = new Vector3([v2x, v2y, 0.0]);
 
   drawVector(v1, 'red');
   drawVector(v2, 'blue');
