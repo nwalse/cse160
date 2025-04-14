@@ -90,6 +90,9 @@ function addActionsForHtmlUI() {
   document.getElementById('triangle').onclick = function() { 
     g_selectedType = 'triangle';
   };
+  document.getElementById('circle').onclick = function() { 
+    g_selectedType = 'circle';
+  };
 
   document.getElementById('redSlide').addEventListener('mouseup', function () { g_selectedColor[0] = this.value/100 });
   document.getElementById('greenSlide').addEventListener('mouseup', function () { g_selectedColor[1] = this.value/100 });
@@ -127,6 +130,8 @@ function click(ev) {
     var point = new Point();
   } else if (g_selectedType == 'triangle') {
     var point = new Triangle();
+  } else if (g_selectedType == 'circle') {
+    var point = new Circle();
   }
 
   point.position = [x, y, 0.0];
