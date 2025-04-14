@@ -31,7 +31,7 @@ function setupWebGL() {
   canvas = document.getElementById('webgl');
 
   // Get the rendering context for WebGL
-  gl = getWebGLContext(canvas);
+  // gl = getWebGLContext(canvas);
   gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
   if (!gl) {
     console.log('Failed to get the rendering context for WebGL');
@@ -93,6 +93,11 @@ function addActionsForHtmlUI() {
   };
   document.getElementById('circle').onclick = function() { 
     g_selectedType = 'circle';
+  };
+
+  document.getElementById('drawing').onclick = function() { 
+    console.log('drawing');
+    showDrawing();
   };
 
   document.getElementById('redSlide').addEventListener('mouseup', function () { g_selectedColor[0] = this.value/100 });
@@ -167,4 +172,72 @@ function renderAllShapes() {
     g_shapesList[i].render();
 
   }
+}
+
+function showDrawing() {
+  g_shapesList = [];
+
+  drawSprial('circle');
+  drawSprial('triangle');
+
+  renderAllShapes();
+}
+
+function drawSprial(spiralType) {
+  const SHAPE_COUNT = 50;
+  const SPIRAL_TURNS = 2;
+  const BASE_SIZE = 25;
+  for (let i = 0; i < SHAPE_COUNT; i++) {
+    // Used chatgpt on the spiral math
+    const angle = i * (2 * Math.PI * SPIRAL_TURNS / SHAPE_COUNT);
+    const radius = i * 0.015;
+    
+    const x = radius * Math.cos(angle);
+    const y = radius * Math.sin(angle);
+    
+    const hue = (angle / (2 * Math.PI)) * 360;
+    const color = hslToRgb(hue, 80, 60);
+    
+    const size = BASE_SIZE - (i * 0.20);
+    
+    let geom;
+    if (spiralType == 'triangle') {
+      geom = new Triangle();
+    } else if (spiralType == 'circle') {
+      geom = new Circle();
+      geom.segments = 20;
+    }
+    geom.size = size;
+    
+    geom.position = [x, y, 0];
+    geom.color = color;
+    g_shapesList.push(geom);
+  }
+}
+
+// Used chatgpt here
+function hslToRgb(h, s, l) {
+  h /= 360, s /= 100, l /= 100;
+  let r, g, b;
+  
+  if (s === 0) {
+      r = g = b = l;
+  } else {
+      const hue2rgb = (p, q, t) => {
+          if(t < 0) t += 1;
+          if(t > 1) t -= 1;
+          if(t < 1/6) return p + (q - p) * 6 * t;
+          if(t < 1/2) return q;
+          if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+      };
+      
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+  }
+  
+  return [r, g, b, 1];
 }
