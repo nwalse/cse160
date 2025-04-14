@@ -69,6 +69,7 @@ function connectVariablesToGLSL() {
 
 let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
+let g_selectedType = 'point';
 
 function addActionsForHtmlUI() {
   document.getElementById('green'). onclick = function() { 
@@ -77,9 +78,17 @@ function addActionsForHtmlUI() {
   document.getElementById('red').onclick = function() { 
     g_selectedColor = [1.0,0.0,0.0,1.0]; 
   };
+
   document.getElementById('clear').onclick = function() { 
     g_shapesList = [];
     renderAllShapes();
+  };
+
+  document.getElementById('point').onclick = function() { 
+    g_selectedType = 'point';
+  };
+  document.getElementById('triangle').onclick = function() { 
+    g_selectedType = 'triangle';
   };
 
   document.getElementById('redSlide').addEventListener('mouseup', function () { g_selectedColor[0] = this.value/100 });
@@ -114,7 +123,12 @@ function click(ev) {
   [x, y] = convertCoordinates(ev);
 
   // Store the coordinates to g_points array
-  var point = new Point();
+  if (g_selectedType == 'point') {
+    var point = new Point();
+  } else if (g_selectedType == 'triangle') {
+    var point = new Triangle();
+  }
+
   point.position = [x, y, 0.0];
   point.color = g_selectedColor.slice();
   point.size = g_selectedSize;
