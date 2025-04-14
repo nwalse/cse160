@@ -6,9 +6,15 @@
   </head>
 
   <body onload="main()">
+    <p>
+    Original Drawing picture
+    <p>
     <img src="IMG_9105.png" alt="Drawing" height="150px" width="100px"/>
     <p>
-
+    The feature that I added is a watercolor mode, when turned on the color 
+    <p>
+    that you have chosen will fade to white if you click and drag while drawing on the canvas
+    <p> 
 
     <canvas id="webgl" width="400" height="400">
     Please use a browser that supports "canvas"
@@ -23,7 +29,10 @@
     <button type="button" id="circle">Circle</button>
     <p>
     <button type="button" id="drawing">Show Drawing</button>
-    <button type="button" id="clear">Clear</button>
+    <button type="button" id="clear">Clear</button> 
+    <button type="button" id="watercolorMode">Watercolor Mode</button>
+
+
 
     <p>
     Red <input type="range" min="0" max="100" value="100" class="slider" id="redSlide">

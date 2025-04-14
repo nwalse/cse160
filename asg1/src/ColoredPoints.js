@@ -72,6 +72,10 @@ let g_selectedSize = 5;
 let g_selectedType = 'point';
 let g_selectedSegments = 10;
 
+let g_watercolorMode = false;
+let g_watercolorFadeFactor = 1.0;
+let g_baseColor = [1.0, 1.0, 1.0, 1.0];
+
 function addActionsForHtmlUI() {
   document.getElementById('green'). onclick = function() { 
     g_selectedColor = [0.0,1.0,0.0,1.0]; 
@@ -98,6 +102,11 @@ function addActionsForHtmlUI() {
   document.getElementById('drawing').onclick = function() { 
     console.log('drawing');
     showDrawing();
+  };
+
+  document.getElementById('watercolorMode').onclick = function() { 
+    g_watercolorMode = !g_watercolorMode;
+    this.textContent = g_watercolorMode ? "Exit Watercolor Mode" : "Watercolor Mode";
   };
 
   document.getElementById('redSlide').addEventListener('mouseup', function () { g_selectedColor[0] = this.value/100 });
@@ -142,8 +151,19 @@ function click(ev) {
     point.segments = g_selectedSegments;
   }
 
+  if (ev.type === 'mousedown') {
+    g_watercolorFadeFactor = 1.0;
+    g_baseColor = g_selectedColor.slice();
+  }
+
+  if (g_watercolorMode) {
+    g_watercolorFadeFactor = Math.max(g_watercolorFadeFactor - 0.02, 0);
+    point.color = g_baseColor.map(c => c * g_watercolorFadeFactor);
+  } else {
+    point.color = g_selectedColor.slice();
+  }
+
   point.position = [x, y, 0.0];
-  point.color = g_selectedColor.slice();
   point.size = g_selectedSize;
   
   g_shapesList.push(point);
