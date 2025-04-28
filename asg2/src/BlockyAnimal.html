@@ -1,57 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Change a point color</title>
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <title>Blocky Animal</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #display-container {
+      margin-bottom: 20px;
+    }
+    .controls-bar {
+      display: flex;
+      flex-direction: row;
+      gap: 32px;
+      align-items: flex-start;
+      background: #f7f7f7;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px #0001;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 170px;
+    }
+    fieldset {
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      padding: 10px;
+      margin: 0;
+      background: #fff;
+    }
+    legend {
+      font-weight: bold;
+      font-size: 1em;
+      padding: 0 6px;
+    }
+    label {
+      font-size: 0.97em;
+    }
+    button {
+      margin-bottom: 6px;
+      padding: 6px 12px;
+      font-size: 1em;
+      border-radius: 4px;
+      border: 1px solid #888;
+      background: #eee;
+      cursor: pointer;
+    }
+    #performance-display {
+      margin-top: 18px;
+      min-height: 1.5em;
+    }
+  </style>
+</head>
+<body onload="main()">
 
-  <body onload="main()">
-    <p>
-    Original Drawing picture
-    <p>
-    <img src="IMG_9105.png" alt="Drawing" height="150px" width="100px"/>
-    <p>
-    The feature that I added is a watercolor mode, when turned on the color 
-    <p>
-    that you have chosen will fade to white if you click and drag while drawing on the canvas
-    <p> 
+  <h1>Blocky Animal</h1>
 
-    <canvas id="webgl" width="400" height="400">
-    Please use a browser that supports "canvas"
+  Neel Walse
+  <br>
+  nwalse@ucsc.edu
+  <br>
+  Notes to Grader:
+  <br>
+  new shape is half pyramid
+  <br>
+  the animal is a capybara
+  <br>
+  shift click shows tongue Animation
+  <br>
+  ---------------------------------------------------------------------------
+
+  <div id="display-container">
+    <canvas id="canvas" width="400" height="400">
+      Please use a browser that supports "canvas"
     </canvas>
+  </div>
 
-    <p>
-    <button type="button" id="red">Red</button>
-    <button type="button" id="green">Green</button>
-    <p>
-    <button type="button" id="point">Point</button>
-    <button type="button" id="triangle">Triangle</button>
-    <button type="button" id="circle">Circle</button>
-    <p>
-    <button type="button" id="drawing">Show Drawing</button>
-    <button type="button" id="clear">Clear</button> 
-    <button type="button" id="watercolorMode">Watercolor Mode</button>
+  <!-- Horizontal Controls Bar -->
+  <div class="controls-bar">
 
+    <!-- Camera Angle Controls -->
+    <div class="control-group">
+      <fieldset>
+        <legend>Camera Angle</legend>
+        <label>
+          X:
+          <input type="range" min="-90" max="90" value="30" class="slider" id="cam-angle-x">
+        </label>
+        <br>
+        <label>
+          Y:
+          <input type="range" min="-90" max="90" value="30" class="slider" id="cam-angle-y">
+        </label>
+        <br>
+        <label>
+          Z:
+          <input type="range" min="-90" max="90" value="0" class="slider" id="cam-angle-z">
+        </label>
+        <br>
+      </fieldset>
+    </div>
 
+    <!-- Head Controls -->
+    <div class="control-group">
+      <fieldset>
+        <legend>Head Controls</legend>
+        <label>
+          X:
+          <input type="range" min="-30" max="30" value="0" class="slider" id="h-slider-x">
+        </label>
+        <br>
+        <label>
+          Y:
+          <input type="range" min="-30" max="30" value="0" class="slider" id="h-slider-y">
+        </label>
+        <br>
+        <label>
+          Z:
+          <input type="range" min="-30" max="30" value="0" class="slider" id="h-slider-z">
+        </label>
+      </fieldset>
+    </div>
 
-    <p>
-    Red <input type="range" min="0" max="100" value="100" class="slider" id="redSlide">
-    <p>
-    Green <input type="range" min="0" max="100" value="0" class="slider" id="greenSlide">
-    <p>
-    Blue <input type="range" min="0" max="100" value="0" class="slider" id="blueSlide">
-    <p>
-    Size <input type="range" min="5" max="40" value="0" class="slider" id="sizeSlide">
-    <p>
-    Segment Count (Circles) <input type="range" min="5" max="20" value="0" class="slider" id="sizeSegment">
+    <!-- Animation and ShiftClick Buttons -->
+    <div class="control-group">
+      <fieldset>
+        <legend>Animation</legend>
+        <button id="toggle-animation">Toggle Animation</button>
+        <button id="toggle-shift">Toggle ShiftClick</button>
+      </fieldset>
+    </div>
 
-    <script src="../lib/webgl-utils.js"></script>
-    <script src="../lib/webgl-debug.js"></script>
-    <script src="../lib/cuon-utils.js"></script>
-    <script src="Triangle.js"></script>
-    <script src="Circle.js"></script>
-    <script src="Point.js"></script>
-    <script src="BlockyAnimal.js"></script>
+    <!-- Front Left Leg Controls -->
+    <div class="control-group">
+      <fieldset>
+        <legend>Front Left Leg</legend>
+        <label>
+          Upper Leg:
+          <input type="range" min="0" max="50" value="10" class="slider" id="front-left-leg-upper-slider">
+        </label>
+        <br>
+        <label>
+          Lower leg:
+          <input type="range" min="-30" max="30" value="0" class="slider" id="front-left-leg-lower-slider">
+        </label>
+      </fieldset>
+    </div>
 
-  </body>
+  </div>
+
+  <div id="performance-display"></div>
+
+  <!-- Scripts -->
+  <script src="../lib/webgl-utils.js"></script>
+  <script src="../lib/webgl-debug.js"></script>
+  <script src="../lib/cuon-utils.js"></script>
+  <script src="../lib/cuon-matrix.js"></script>
+  <script src="Triangle.js"></script>
+  <script src="Cube.js"></script>
+  <script src="HalfPyramid.js"></script>
+  <script src="BlockyAnimal.js"></script>
+
+</body>
 </html>

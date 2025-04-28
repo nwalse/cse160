@@ -1,13 +1,14 @@
 // ColoredPoint.js (c) 2012 matsuda
+// used ai to help me with this on the animal creation
 // Vertex shader program
 
 var VSHADER_SOURCE = `
   attribute vec4 a_Position;
-  uniform float u_Size;
+  uniform mat4 u_ModelMatrix;
+  uniform mat4 u_GlobalRotateMatrix;
+  uniform mat4 u_GlobalTranslateMatrix;
   void main() {
-    gl_Position = a_Position;
-    //gl_PointSize = 10.0;
-    gl_PointSize = u_Size;
+    gl_Position = u_GlobalRotateMatrix * u_GlobalTranslateMatrix * u_ModelMatrix * a_Position;
   }`
 
 // Fragment shader program
@@ -18,25 +19,33 @@ var FSHADER_SOURCE = `
     gl_FragColor = u_FragColor;
   }`
 
+  let canvas, gl;
+  let a_Position, u_FragColor, u_ModelMatrix, u_GlobalRotateMatrix, u_GlobalTranslateMatrix;
+  
+  let g_animationActive = true;
+  let g_animationShift = false;
+  
+  let g_cameraAngleX = 30.0, g_cameraAngleY = 30.0, g_cameraAngleZ = 0.0;
+  let g_deltaX = 0, g_deltaY = 0;
+  
+  let g_headAngle = [0.0, 0.0, 0.0];
+  let g_flAngle = -30.0, g_frAngle = -30.0, g_flLowerAngle = 70.0, g_frLowerAngle = 70.0;
+  let g_blAngle = 20.0, g_brAngle = 20.0, g_blLowerAngle = -40.0, g_brLowerAngle = -40.0;
+  let g_flFootAngle = 0.0, g_frFootAngle = 0.0, g_blFootAngle = 0.0, g_brFootAngle = 0.0;
+  
+  let g_startTime = performance.now() / 1000.0;
+  let g_seconds = 0;
 
-// Global variables
-let canvas;
-let gl;
-let a_Position;
-let u_FragColor;
-let u_Size;
 
-function setupWebGL() { 
-  // Retrieve <canvas> element
-  canvas = document.getElementById('webgl');
-
-  // Get the rendering context for WebGL
-  // gl = getWebGLContext(canvas);
-  gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
+function setUpWebGL() {
+  canvas = document.getElementById('canvas');
+  gl = canvas.getContext("webgl", { preserveDrawingBuffer: true});
   if (!gl) {
     console.log('Failed to get the rendering context for WebGL');
     return;
   }
+
+  gl.enable(gl.DEPTH_TEST);
 }
 
 function connectVariablesToGLSL() {
@@ -60,121 +69,70 @@ function connectVariablesToGLSL() {
     return;
   }
 
-  u_Size = gl.getUniformLocation(gl.program, 'u_Size');
-  if (!u_Size) {
-    console.log('Failed to get the storage location of u_Size');
+  u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+  if(!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_ModelMatrix');
     return;
   }
-}
 
-let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
-let g_selectedSize = 5;
-let g_selectedType = 'point';
-let g_selectedSegments = 10;
-
-let g_watercolorMode = false;
-let g_watercolorFadeFactor = 1.0;
-let g_baseColor = [1.0, 1.0, 1.0, 1.0];
-
-function addActionsForHtmlUI() {
-  document.getElementById('green'). onclick = function() { 
-    g_selectedColor = [0.0,1.0,0.0,1.0]; 
-  };
-  document.getElementById('red').onclick = function() { 
-    g_selectedColor = [1.0,0.0,0.0,1.0]; 
-  };
-
-  document.getElementById('clear').onclick = function() { 
-    g_shapesList = [];
-    renderAllShapes();
-  };
-
-  document.getElementById('point').onclick = function() { 
-    g_selectedType = 'point';
-  };
-  document.getElementById('triangle').onclick = function() { 
-    g_selectedType = 'triangle';
-  };
-  document.getElementById('circle').onclick = function() { 
-    g_selectedType = 'circle';
-  };
-
-  document.getElementById('drawing').onclick = function() { 
-    console.log('drawing');
-    showDrawing();
-  };
-
-  document.getElementById('watercolorMode').onclick = function() { 
-    g_watercolorMode = !g_watercolorMode;
-    this.textContent = g_watercolorMode ? "Exit Watercolor Mode" : "Watercolor Mode";
-  };
-
-  document.getElementById('redSlide').addEventListener('mouseup', function () { g_selectedColor[0] = this.value/100 });
-  document.getElementById('greenSlide').addEventListener('mouseup', function () { g_selectedColor[1] = this.value/100 });
-  document.getElementById('blueSlide').addEventListener('mouseup', function () { g_selectedColor[2] = this.value/100 });
-
-  document.getElementById('sizeSlide').addEventListener('mouseup', function () { g_selectedSize = this.value });
-  document.getElementById('sizeSegment').addEventListener('mouseup', function () { g_selectedSegments = this.value });
-}
-
-function main() {
-
-  setupWebGL();
-
-  connectVariablesToGLSL();
-
-  addActionsForHtmlUI();
-
-  // Register function (event handler) to be called on a mouse press
-  canvas.onmousedown = click;
-  canvas.onmousemove = function(ev) { if(ev.buttons == 1) {click(ev)} } ;
-
-  // Specify the color for clearing <canvas>
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-  // Clear <canvas>
-  gl.clear(gl.COLOR_BUFFER_BIT);
-}
-
-var g_shapesList = [];
-
-function click(ev) {
-  [x, y] = convertCoordinates(ev);
-
-  // Store the coordinates to g_points array
-  if (g_selectedType == 'point') {
-    var point = new Point();
-  } else if (g_selectedType == 'triangle') {
-    var point = new Triangle();
-  } else if (g_selectedType == 'circle') {
-    var point = new Circle();
-    point.segments = g_selectedSegments;
+  u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
+  if(!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+    return;
   }
 
-  if (ev.type === 'mousedown') {
-    g_watercolorFadeFactor = 1.0;
-    g_baseColor = g_selectedColor.slice();
+  u_GlobalTranslateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalTranslateMatrix');
+  if(!u_ModelMatrix) {
+    console.log('Failed to get the storage location of u_GlobalTranslateMatrix');
+    return;
   }
 
-  if (g_watercolorMode) {
-    g_watercolorFadeFactor = Math.max(g_watercolorFadeFactor - 0.02, 0);
-    point.color = g_baseColor.map(c => c * g_watercolorFadeFactor);
-  } else {
-    point.color = g_selectedColor.slice();
-  }
-
-  point.position = [x, y, 0.0];
-  point.size = g_selectedSize;
+  let x = new Matrix4();
   
-  g_shapesList.push(point);
-
-  renderAllShapes();
-
+  gl.uniformMatrix4fv(u_ModelMatrix, false, x.elements);
 }
 
-function convertCoordinates(ev) {
-  var x = ev.clientX; // x coordinate of a mouse pointer
-  var y = ev.clientY; // y coordinate of a mouse pointer
+function addActionListeners() {
+  // button events
+  document.getElementById('toggle-animation').onclick = function() {g_animationActive = !g_animationActive;};
+  document.getElementById('toggle-shift').onclick = function() {g_animationShift = !g_animationShift;};
+  
+  // slider events
+  document.getElementById('front-left-leg-upper-slider').addEventListener('mousemove', function() {g_flAngle = this.value; renderAllShapes();});
+  document.getElementById('front-left-leg-lower-slider').addEventListener('mousemove', function() {g_flLowerAngle = this.value; renderAllShapes();});
+
+  document.getElementById('cam-angle-x').addEventListener('mousemove', function() {g_cameraAngleX = this.value; renderAllShapes();});
+  document.getElementById('cam-angle-y').addEventListener('mousemove', function() {g_cameraAngleY = this.value; renderAllShapes();});
+  document.getElementById('cam-angle-z').addEventListener('mousemove', function() {g_cameraAngleZ = this.value; renderAllShapes();});
+
+  document.getElementById('h-slider-x').addEventListener('mousemove', function() {g_headAngle[0] = this.value; renderAllShapes();});
+  document.getElementById('h-slider-y').addEventListener('mousemove', function() {g_headAngle[1] = this.value; renderAllShapes();});
+  document.getElementById('h-slider-z').addEventListener('mousemove', function() {g_headAngle[2] = this.value; renderAllShapes();});
+
+  document.getElementById('display-container').addEventListener('click', function(ev) {
+    if(ev.shiftKey) {
+      g_animationShift = !g_animationShift;
+    }
+  });
+
+  canvas.onmousemove = function(ev) {
+    let [x, y] = convertMouseToEventCoords(ev);
+    if(ev.buttons == 1) {
+      g_cameraAngleY -= (x - g_deltaX) * 120;
+      g_cameraAngleX -= (y - g_deltaY) * 120;
+      g_deltaX = x;
+      g_deltaY = y;
+    } else {
+      g_deltaX = x;
+      g_deltaY = y;
+    }
+  }
+}
+
+
+function convertMouseToEventCoords(ev) {
+  var x = ev.clientX;
+  var y = ev.clientY;
   var rect = ev.target.getBoundingClientRect();
 
   x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
@@ -183,81 +141,303 @@ function convertCoordinates(ev) {
   return([x, y]);
 }
 
-function renderAllShapes() {
-  // Clear <canvas>
-  gl.clear(gl.COLOR_BUFFER_BIT);
+function renderScene() {
+  var startTime = performance.now();
 
-  var len = g_shapesList.length;
-  for(var i = 0; i < len; i++) {
-    g_shapesList[i].render();
+  // Camera transforms
+  let rotMat = new Matrix4().rotate(-g_cameraAngleX, 1, 0, 0);
+  rotMat.rotate(g_cameraAngleY, 0, 1, 0);
+  rotMat.rotate(g_cameraAngleZ, 0, 0, 1);
+  let transMat = new Matrix4().translate(0, 0, 0);
+  gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, rotMat.elements);
+  gl.uniformMatrix4fv(u_GlobalTranslateMatrix, false, transMat.elements);
 
+  // Animal part objects
+  let animal = {
+    torso: new Cube(),
+    neck: new Cube(),
+    head: new Cube(),
+    muzzle: new Cube(),
+    nostrilL: new Cube(),
+    nostrilR: new Cube(),
+    mouthTop: new Cube(),
+    mouthBot: new Cube(),
+    eyeL: new Cube(),
+    eyeR: new Cube(),
+    tongue: new Cube(),
+    earL: new HalfPyramid(),
+    earR: new HalfPyramid(),
+    legFL: [new Cube(), new Cube(), new Cube()],
+    legFR: [new Cube(), new Cube(), new Cube()],
+    legBL: [new Cube(), new Cube(), new Cube()],
+    legBR: [new Cube(), new Cube(), new Cube()]
+  };
+
+  // Animation and angles
+  let anim = {
+    neck: [g_headAngle[0], g_headAngle[1], g_headAngle[2]],
+    legFL: { upper: g_flAngle, lower: g_flLowerAngle, foot: g_flFootAngle },
+    legFR: { upper: g_frAngle, lower: g_frLowerAngle, foot: g_frFootAngle },
+    legBL: { upper: g_blAngle, lower: g_blLowerAngle, foot: g_blFootAngle },
+    legBR: { upper: g_brAngle, lower: g_brLowerAngle, foot: g_brFootAngle }
+  };
+  const speed = 5, distLow = 15, distUp = 20, neckWobble = 5;
+
+  if (g_animationActive) {
+    anim.legFL.upper = g_flAngle + distUp * Math.sin(g_seconds * speed);
+    anim.legFL.lower = g_flLowerAngle - 30 + distLow * Math.sin(g_seconds * speed);
+    anim.legFR.upper = g_frAngle + distUp * Math.sin(g_seconds * speed + Math.PI);
+    anim.legFR.lower = g_frLowerAngle - 30 + distLow * Math.sin(g_seconds * speed + Math.PI);
+    anim.legBL.upper = g_blAngle + 0.75 * distUp * Math.sin(g_seconds * speed + Math.PI);
+    anim.legBR.upper = g_brAngle + 0.75 * distUp * Math.sin(g_seconds * speed);
+    anim.legBL.lower = g_blLowerAngle + distLow * Math.sin(g_seconds * speed + Math.PI);
+    anim.legBR.lower = g_brLowerAngle + distLow * Math.sin(g_seconds * speed);
+    anim.neck[2] = g_headAngle[2] + neckWobble * Math.sin(g_seconds * 5);
+    anim.neck[0] = g_headAngle[0] + neckWobble * Math.cos(g_seconds * 5);
+    anim.legFL.foot = 20 * Math.sin(g_seconds * speed + Math.PI / 2);
+    anim.legFR.foot = 20 * Math.sin(g_seconds * speed + Math.PI + Math.PI / 2);
+    anim.legBL.foot = 20 * Math.sin(g_seconds * speed + Math.PI + Math.PI / 2);
+    anim.legBR.foot = 20 * Math.sin(g_seconds * speed + Math.PI / 2);
   }
+
+  // Clear canvas
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  // Torso
+  animal.torso.color = [0.60, 0.50, 0.30, 1.0];
+  animal.torso.matrix.scale(0.3, 0.5, 0.75);
+  animal.torso.matrix.translate(-0.5, -0.5, -0.3);
+  animal.torso.render();
+
+  // Neck
+  animal.neck.color = [0.60, 0.50, 0.30, 1.0];
+  animal.neck.matrix.translate(0, -0.05, -0.35);
+  animal.neck.matrix.rotate(-40, 1, 0, 0);
+  animal.neck.matrix.rotate(anim.neck[0], 1, 0, 0);
+  animal.neck.matrix.rotate(anim.neck[1], 0, 1, 0);
+  animal.neck.matrix.rotate(anim.neck[2], 0, 0, 1);
+  let neckMat = new Matrix4(animal.neck.matrix);
+  animal.neck.matrix.scale(0.19, 0.5, 0.3);
+  animal.neck.matrix.translate(-0.5, -0.5, 0);
+  animal.neck.render();
+
+  // Head
+  animal.head.color = [0.60, 0.50, 0.30, 1.0];
+  animal.head.matrix = neckMat;
+  animal.head.matrix.translate(-0.12, 0.25, -0.05);
+  animal.head.matrix.rotate(40, 1, 0, 0);
+  let headMat = new Matrix4(animal.head.matrix);
+  animal.head.matrix.scale(0.25, 0.25, 0.3);
+  animal.head.render();
+
+  // Ears
+  animal.earL.color = [0.38, 0.28, 0.18, 1.0];
+  animal.earL.matrix = new Matrix4(headMat);
+  animal.earL.matrix.translate(0.2, 0.3, 0.2);
+  animal.earL.matrix.rotate(15, 0, 1, 0);
+  animal.earL.matrix.scale(0.1, 0.1, 0.1);
+  animal.earL.render();
+
+  animal.earR.color = [0.38, 0.28, 0.18, 1.0];
+  animal.earR.matrix = new Matrix4(headMat);
+  animal.earR.matrix.translate(0.05, 0.3, 0.2);
+  animal.earR.matrix.rotate(155, 0, 1, 0);
+  animal.earR.matrix.scale(0.1, 0.1, -0.1);
+  animal.earR.render();
+
+  // Eyes
+  animal.eyeL.color = [1.0, 1.0, 1.0, 1.0];
+  animal.eyeL.matrix = new Matrix4(headMat);
+  animal.eyeL.matrix.translate(0.23, 0.15, 0.02);
+  animal.eyeL.matrix.scale(0.05, 0.06, 0.06);
+  animal.eyeL.render();
+
+  animal.eyeL.color = [0.0, 0.0, 0.0, 1.0];
+  animal.eyeL.matrix = new Matrix4(headMat);
+  animal.eyeL.matrix.translate(0.24, 0.16, 0.035);
+  animal.eyeL.matrix.scale(0.05, 0.04, 0.03);
+  animal.eyeL.render();
+
+  animal.eyeR.color = [1.0, 1.0, 1.0, 1.0];
+  animal.eyeR.matrix = new Matrix4(headMat);
+  animal.eyeR.matrix.translate(-0.03, 0.15, 0.02);
+  animal.eyeR.matrix.scale(0.05, 0.06, 0.06);
+  animal.eyeR.render();
+
+  animal.eyeR.color = [0.0, 0.0, 0.0, 1.0];
+  animal.eyeR.matrix = new Matrix4(headMat);
+  animal.eyeR.matrix.translate(-0.04, 0.16, 0.035);
+  animal.eyeR.matrix.scale(0.05, 0.04, 0.03);
+  animal.eyeR.render();
+
+  // Muzzle
+  animal.muzzle.color = [0.60, 0.50, 0.30, 1.0];
+  animal.muzzle.matrix = headMat;
+  animal.muzzle.matrix.translate(0.01, 0, -0.2);
+  animal.muzzle.matrix.scale(0.23, 0.23, 0.2);
+  animal.muzzle.render();
+
+  // Nostrils
+  animal.nostrilL.color = [0.38, 0.28, 0.18, 1.0];
+  animal.nostrilL.matrix = new Matrix4(animal.muzzle.matrix);
+  animal.nostrilL.matrix.translate(0.3, 0.7, -0.03);
+  animal.nostrilL.matrix.scale(0.1, 0.2, 0.1);
+  animal.nostrilL.render();
+
+  animal.nostrilR.color = [0.38, 0.28, 0.18, 1.0];
+  animal.nostrilR.matrix = new Matrix4(animal.muzzle.matrix);
+  animal.nostrilR.matrix.translate(0.6, 0.7, -0.03);
+  animal.nostrilR.matrix.scale(0.1, 0.2, 0.1);
+  animal.nostrilR.render();
+
+  // Mouth
+  animal.mouthTop.color = [0.38, 0.28, 0.18, 1.0];
+  animal.mouthTop.matrix = new Matrix4(animal.muzzle.matrix);
+  animal.mouthTop.matrix.translate(0.2, 0.1, -0.03);
+  animal.mouthTop.matrix.scale(0.6, 0.1, 0.1);
+  animal.mouthTop.render();
+
+  animal.mouthBot.color = [0.38, 0.28, 0.18, 1.0];
+  animal.mouthBot.matrix = new Matrix4(animal.muzzle.matrix);
+  animal.mouthBot.matrix.translate(0.45, 0.1, -0.03);
+  animal.mouthBot.matrix.scale(0.1, 0.3, 0.1);
+  animal.mouthBot.render();
+
+  // Front Left Leg
+  animal.legFL[0].color = [0.60, 0.50, 0.30, 1.0];
+  animal.legFL[0].matrix.setTranslate(0.05, -0.09, -0.3);
+  animal.legFL[0].matrix.rotate(anim.legFL.upper, 1, 0, 0);
+  let legFLMat = new Matrix4(animal.legFL[0].matrix);
+  animal.legFL[0].matrix.rotate(180, 1, 0, 0);
+  animal.legFL[0].matrix.scale(0.15, 0.3, -0.15);
+  animal.legFL[0].render();
+
+  animal.legFL[1].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legFL[1].matrix = legFLMat;
+  animal.legFL[1].matrix.translate(0.025, -0.2, 0.05);
+  animal.legFL[1].matrix.rotate(180, 1, 0, 0);
+  animal.legFL[1].matrix.rotate(anim.legFL.lower, 1, 0, 0);
+  let legFLMat2 = new Matrix4(animal.legFL[1].matrix);
+  animal.legFL[1].matrix.scale(0.1, 0.2, -0.1);
+  animal.legFL[1].render();
+
+  animal.legFL[2].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legFL[2].matrix = legFLMat2;
+  animal.legFL[2].matrix.translate(-0.01, 0.18, -0.11);
+  animal.legFL[2].matrix.rotate(anim.legFL.foot, 1, 0, 0);
+  animal.legFL[2].matrix.scale(0.13, 0.05, 0.2);
+  animal.legFL[2].render();
+
+  // Front Right Leg
+  animal.legFR[0].color = [0.65, 0.55, 0.3, 1.0];
+  animal.legFR[0].matrix.setTranslate(-0.2, -0.09, -0.3);
+  animal.legFR[0].matrix.rotate(anim.legFR.upper, 1, 0, 0);
+  let legFRMat = new Matrix4(animal.legFR[0].matrix);
+  animal.legFR[0].matrix.rotate(180, 1, 0, 0);
+  animal.legFR[0].matrix.scale(0.15, 0.3, -0.15);
+  animal.legFR[0].render();
+
+  animal.legFR[1].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legFR[1].matrix = legFRMat;
+  animal.legFR[1].matrix.translate(0.025, -0.2, 0.05);
+  animal.legFR[1].matrix.rotate(180, 1, 0, 0);
+  animal.legFR[1].matrix.rotate(anim.legFR.lower, 1, 0, 0);
+  let legFRMat2 = new Matrix4(animal.legFR[1].matrix);
+  animal.legFR[1].matrix.scale(0.1, 0.2, -0.1);
+  animal.legFR[1].render();
+
+  animal.legFR[2].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legFR[2].matrix = legFRMat2;
+  animal.legFR[2].matrix.translate(-0.01, 0.18, -0.11);
+  animal.legFR[2].matrix.rotate(anim.legFR.foot, 1, 0, 0);
+  animal.legFR[2].matrix.scale(0.13, 0.05, 0.2);
+  animal.legFR[2].render();
+
+  // Back Left Leg
+  animal.legBL[0].color = [0.65, 0.55, 0.3, 1.0];
+  animal.legBL[0].matrix.translate(0, 0.09, 0.4);
+  animal.legBL[0].matrix.rotate(180, 1, 0, 0);
+  animal.legBL[0].matrix.rotate(anim.legBL.upper, 1, 0, 0);
+  let legBLMat = new Matrix4(animal.legBL[0].matrix);
+  animal.legBL[0].matrix.scale(0.2, 0.35, -0.2);
+  animal.legBL[0].render();
+
+  animal.legBL[1].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legBL[1].matrix = legBLMat;
+  animal.legBL[1].matrix.translate(0.05, 0.24, -0.15);
+  animal.legBL[1].matrix.rotate(anim.legBL.lower, 1, 0, 0);
+  let legBLMat2 = new Matrix4(animal.legBL[1].matrix);
+  animal.legBL[1].matrix.scale(0.1, 0.25, 0.1);
+  animal.legBL[1].render();
+
+  animal.legBL[2].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legBL[2].matrix = legBLMat2;
+  animal.legBL[2].matrix.translate(-0.01, 0.22, 0);
+  animal.legBL[2].matrix.rotate(anim.legBL.foot, 1, 0, 0);
+  animal.legBL[2].matrix.scale(0.13, 0.05, 0.2);
+  animal.legBL[2].render();
+
+  // Back Right Leg
+  animal.legBR[0].color = [0.65, 0.55, 0.3, 1.0];
+  animal.legBR[0].matrix.translate(-0.2, 0.09, 0.4);
+  animal.legBR[0].matrix.rotate(180, 1, 0, 0);
+  animal.legBR[0].matrix.rotate(anim.legBR.upper, 1, 0, 0);
+  let legBRMat = new Matrix4(animal.legBR[0].matrix);
+  animal.legBR[0].matrix.scale(0.2, 0.35, -0.2);
+  animal.legBR[0].render();
+
+  animal.legBR[1].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legBR[1].matrix = legBRMat;
+  animal.legBR[1].matrix.translate(0.05, 0.24, -0.15);
+  animal.legBR[1].matrix.rotate(anim.legBR.lower, 1, 0, 0);
+  let legBRMat2 = new Matrix4(animal.legBR[1].matrix);
+  animal.legBR[1].matrix.scale(0.1, 0.25, 0.1);
+  animal.legBR[1].render();
+
+  animal.legBR[2].color = [0.38, 0.28, 0.18, 1.0];
+  animal.legBR[2].matrix = legBRMat2;
+  animal.legBR[2].matrix.translate(-0.02, 0.22, 0);
+  animal.legBR[2].matrix.rotate(anim.legBR.foot, 1, 0, 0);
+  animal.legBR[2].matrix.scale(0.13, 0.05, 0.2);
+  animal.legBR[2].render();
+
+  // Tongue (if shift animation)
+  if (g_animationShift) {
+    animal.tongue.color = [0.9, 0.4, 0.4, 1.0];
+    animal.tongue.matrix = new Matrix4(animal.muzzle.matrix);
+    animal.tongue.matrix.translate(0.3, 0.3, 0.1);
+    let flop = 170 + 20 * Math.sin(g_seconds * 8);
+    animal.tongue.matrix.rotate(flop, 1, 0, 0);
+    animal.tongue.matrix.scale(0.4, 0.18, 0.5);
+    animal.tongue.render();
+  }
+
+  let duration = performance.now() - startTime;
+  sendTextToHTML(" ms: " + Math.floor(duration) + " fps: " + Math.floor(10000 / duration), 'performance-display');
 }
 
-function showDrawing() {
-  g_shapesList = [];
 
-  drawSprial('circle');
-  drawSprial('triangle');
-
-  renderAllShapes();
+function sendTextToHTML(txt, htmlID) {
+  var htmlElm = document.getElementById(htmlID);
+  if(!htmlID) {
+    console.log("Failed to get " + htmlID + " from HTML.");
+    return;
+  }
+  htmlElm.innerHTML = txt;
 }
 
-function drawSprial(spiralType) {
-  const SHAPE_COUNT = 50;
-  const SPIRAL_TURNS = 2;
-  const BASE_SIZE = 25;
-  for (let i = 0; i < SHAPE_COUNT; i++) {
-    // Used chatgpt on the spiral math
-    const angle = i * (2 * Math.PI * SPIRAL_TURNS / SHAPE_COUNT);
-    const radius = i * 0.015;
-    
-    const x = radius * Math.cos(angle);
-    const y = radius * Math.sin(angle);
-    
-    const hue = (angle / (2 * Math.PI)) * 360;
-    const color = hslToRgb(hue, 80, 60);
-    
-    const size = BASE_SIZE - (i * 0.20);
-    
-    let geom;
-    if (spiralType == 'triangle') {
-      geom = new Triangle();
-    } else if (spiralType == 'circle') {
-      geom = new Circle();
-      geom.segments = 20;
-    }
-    geom.size = size;
-    
-    geom.position = [x, y, 0];
-    geom.color = color;
-    g_shapesList.push(geom);
-  }
+function tick() {
+  g_seconds = performance.now()/1000.0 - g_startTime;
+  renderScene();
+  requestAnimationFrame(tick);
 }
 
-// Used chatgpt here
-function hslToRgb(h, s, l) {
-  h /= 360, s /= 100, l /= 100;
-  let r, g, b;
-  
-  if (s === 0) {
-      r = g = b = l;
-  } else {
-      const hue2rgb = (p, q, t) => {
-          if(t < 0) t += 1;
-          if(t > 1) t -= 1;
-          if(t < 1/6) return p + (q - p) * 6 * t;
-          if(t < 1/2) return q;
-          if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-          return p;
-      };
-      
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
-  }
-  
-  return [r, g, b, 1];
+
+function main() {
+  setUpWebGL();
+  connectVariablesToGLSL();
+  addActionListeners();
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  renderScene();
+  requestAnimationFrame(tick);
 }

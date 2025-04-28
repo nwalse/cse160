@@ -50,3 +50,58 @@ class Cube {
     drawTriangle3D([0.0, 0.0, 1.0,  0.0, 1.0, 1.0,  1.0, 1.0, 1.0], this.buffer);
   }
 }
+
+let cubeVertexBuffer = null;
+let cubeIndexBuffer = null;
+let cubeInitialized = false;
+
+function initCubeBuffers() {
+  const vertices = new Float32Array([
+    -0.5, -0.5,  0.5,  // Front-bottom-left
+     0.5, -0.5,  0.5,  // Front-bottom-right
+     0.5,  0.5,  0.5,  // Front-top-right
+    -0.5,  0.5,  0.5,  // Front-top-left
+    -0.5, -0.5, -0.5,  // Back-bottom-left
+     0.5, -0.5, -0.5,  // Back-bottom-right
+     0.5,  0.5, -0.5,  // Back-top-right
+    -0.5,  0.5, -0.5   // Back-top-left
+  ]);
+
+  const indices = new Uint16Array([
+    0,1,2, 0,2,3,    // Front face
+    4,5,6, 4,6,7,    // Back face
+    3,2,6, 3,6,7,    // Top face
+    0,1,5, 0,5,4,    // Bottom face
+    1,2,6, 1,6,5,    // Right face
+    0,3,7, 0,7,4     // Left face
+  ]);
+
+  // Create buffers
+  cubeVertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+  cubeIndexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+  cubeInitialized = true;
+}
+
+function drawCube(matrix) {
+  if (!cubeInitialized) initCubeBuffers();
+
+  // Set up vertex attributes
+  gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexBuffer);
+  gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_Position);
+
+  // Bind index buffer
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer);
+
+  // Set model matrix uniform
+  gl.uniformMatrix4fv(u_ModelMatrix, false, matrix.elements);
+
+  // Draw the cube
+  gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+}
