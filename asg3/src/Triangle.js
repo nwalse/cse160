@@ -1,3 +1,5 @@
+// Used AI to help with code here
+
 class Triangle {
   constructor() {
     this.type = 'triangle';

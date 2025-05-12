@@ -1,3 +1,5 @@
+// Used AI to help with code here
+
 class Camera {
   constructor() {
     this.eye = new Vector3([0, 0, 0]);
