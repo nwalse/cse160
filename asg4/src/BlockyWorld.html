@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body onload="main()">
+
+    <title>Blocky World</title>
+    Neel Walse
+    nwalse@ucsc.edu
+
+    <br><br>
+    Notes to Grader: <br>
+    - left clicking(or on mac mouspad click with two fingers) to delete blocks and right clicks to create them  <br>
+    - WASD controls for movement<br>
+    - There is a yellow cube to show where you are pointing at when you create or delete a box <br>
+      when it is on a box that already exists it will not appear but you are still facing it<br>
+    - Game: create a bridge so the capybara can cross the river<br>
+
+
+    <div class="segment" id="performance-display"></div>
+
+    <br>
+    <div class="segment">
+      <div class="segment" id="display-container">
+        <canvas id="webgl" width="1350" height="600">
+          Please use a browser that supports "canvas"
+        </canvas>
+      </div>
+    </div>
+    <br>
+
+
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib/cuon-matrix-cse160.js"></script>
+    <script src="Triangle.js"></script>
+    <script src="Camera.js"></script>
+    <script src="Cube.js"></script>
+    <script src="World.js"></script>
+    <script src="BlockyWorld.js"></script>
+
+  </body>
+</html>
