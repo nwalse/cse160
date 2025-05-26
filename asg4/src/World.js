@@ -40,7 +40,7 @@ class World {
     // Preview marker
     this.previewCube = new Cube();
     this.previewCube.color = [1, 1, 0, 0.5]; // semi-transparent yellow
-    this.previewCube.textureOption = 0; // color mode
+    this.previewCube.textureOption = 5; // color mode
   }
 
   drawMap() {
