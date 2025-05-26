@@ -102,7 +102,7 @@ var FSHADER_SOURCE = `
     // specular
     vec3 specular = u_specularColor * pow(max(dot(E, R), 0.0), u_specularCoefficient);
 
-    vec3 diffuse = vec3(u_diffuseColor) * vec3(gl_FragColor) * nDotL * 0.5;
+    vec3 diffuse = vec3(u_diffuseColor) * vec3(gl_FragColor) * nDotL;
     vec3 ambient = vec3(u_ambientColor) * vec3(gl_FragColor) * u_ambientLevel;
 
 
@@ -188,9 +188,9 @@ let g_lightPos = [0,2,0];
 let g_lightOn = true;
 let g_specularColor = [0.5,0.5,0.5];
 let g_diffuseColor = [0.1,0.1,0.1];
-let g_ambientColor = [0.5,0.5,0.5];
-let g_ambientLevel = 0.65;
-let g_specularCoefficient = 30.0;
+let g_ambientColor = [0.8,0.8,0.8];
+let g_ambientLevel = 0.85;
+let g_specularCoefficient = 1.0;
 
 let g_spotlight = {
   active: true,
