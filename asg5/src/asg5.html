@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+
+    <style>
+        .stats {
+            position: fixed;
+            top: 0;
+            right: 0;
+        }
+
+        .features {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            z-index: 1;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@v0.163.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.163.0/examples/jsm/"
+            }
+        }
+    </script>
+    <body>
+        <canvas id="c"></canvas>
+        <div class="features">
+            <h1>Notes to graders:</h1>
+            <h2>Implemented Features:</h2>
+            <ul>                
+                <li> The sun is the standard shape of a sphere</li>
+                <li><strong>Custom 3D Model (1 pt):</strong> A custom 3D model has been loaded and textured using the GLTFLoader.</li>
+                                
+                <li>
+                    <ul>
+                        <li>Directional Light (main light source)</li>
+                        <li>Point Light (adds ambient illumination)</li>
+                        <li>Spot Light (creates focused lighting effects)</li>
+                    </ul>
+                </li>
+                        
+                <li>The extra feature that I have is the sun and moon rotation between night and day</li>
+                
+                <li><strong>Extra Feature (1.5 pts):</strong> [Please add your specific extra feature here - for example, if you implemented a game mechanic, special effects, or other unique features]</li>
+            </ul>
+        </div>
+        <script type="module" src="asg5.js"></script>
+        <script type="module" src="./../src/sky.js"></script>
+    </body>
+</html>
